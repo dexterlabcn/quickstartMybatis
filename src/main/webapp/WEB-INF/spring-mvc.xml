@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd">
+
+	<!-- 自动扫描且只扫描@Controller -->
+	<context:component-scan base-package="org.springside.examples.quickstart" use-default-filters="false">
+		<context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+		<context:include-filter type="annotation" expression="org.springframework.web.bind.annotation.ControllerAdvice"/>
+	</context:component-scan>
+	
+	<mvc:annotation-driven>
+		<mvc:message-converters register-defaults="true">
+			<!-- 将StringHttpMessageConverter的默认编码设为UTF-8 -->
+			<bean class="org.springframework.http.converter.StringHttpMessageConverter">
+		    	<constructor-arg value="UTF-8" />
+			</bean>
+			<!-- 将Jackson2HttpMessageConverter的默认格式化输出设为true -->
+			<bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+                <property name="prettyPrint" value="true"/>
+				<property name="objectMapper">
+					<bean class="com.fasterxml.jackson.databind.ObjectMapper">
+						<property name="dateFormat">
+							<bean class="java.text.SimpleDateFormat">
+								<constructor-arg type="java.lang.String" value="yyyy-MM-dd HH:mm:ss" />
+							</bean>
+						</property>
+					</bean>
+				</property>
+            </bean>			
+  		</mvc:message-converters>
+	</mvc:annotation-driven>
+
+	<!-- REST中根据URL后缀自动判定Content-Type及相应的View -->
+	<bean id="contentNegotiationManager" class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
+		<property name="ignoreAcceptHeader" value="true" />
+		<property name="defaultContentType" value="application/json" />
+		<property name="mediaTypes" >
+			<value>
+				json=application/json
+				xml=application/xml
+			</value>
+		</property>
+	</bean>
+	
+	<!-- ***************************************************************************** -->
+	<!--  以下为freemarker的相关配置，如果使用freemarker请把注释去掉即可                    -->
+	<!--                                                                               -->
+	<!--  freemarker config 为了在freemarker中使用shiro tag用自定义的                     -->
+	<!-- org.springside.modules.security.shiro.freemarker.ShiroTagFreeMarkerConfigurer -->
+	<!-- 代替 org.springframework.web.servlet.view.freemarker.FreeMarkerConfigurer      -->
+	<!-- ***************************************************************************** -->
+	<bean id="freemarkerConfig" class="org.springside.modules.security.shiro.freemarker.ShiroTagFreeMarkerConfigurer">
+		<property name="templateLoaderPath" value="/WEB-INF/views/"/>
+		<property name="freemarkerVariables">
+			<map>
+				<entry key="xml_escape" value-ref="fmXmlEscape" />
+			</map>
+		</property>
+
+		<property name="defaultEncoding" value="UTF-8"/>
+
+		<property name="freemarkerSettings">
+			<props>
+				<prop key="template_update_delay">0</prop>
+				<prop key="defaultEncoding">UTF-8</prop>
+				<prop key="url_escaping_charset">UTF-8</prop>
+				<prop key="datetime_format">yyyy-MM-dd HH:mm:ss</prop>
+				<prop key="date_format">yyyy-MM-dd</prop>
+				<prop key="time_format">HH:mm:ss</prop>
+				<prop key="number_format">#.##</prop>
+				<prop key="whitespace_stripping">true</prop>
+			</props>
+		</property>
+	</bean>
+	<bean id="fmXmlEscape" class="freemarker.template.utility.XmlEscape"/>
+
+	<!-- freemarker -->
+	<bean id="viewResolver" class="org.springframework.web.servlet.view.freemarker.FreeMarkerViewResolver">
+		<property name="contentType" value="text/html; charset=UTF-8"/>
+		<property name="cache" value="true"/>
+		<property name="order" value="1" />
+		<property name="prefix" value=""/>
+		<property name="suffix" value=".ftl"/>
+		<property name="requestContextAttribute" value="request" />
+		<property name="exposeRequestAttributes" value="true" />
+		<property name="exposeSessionAttributes" value="true" />
+		<property name="exposeSpringMacroHelpers" value="true" />
+	</bean>
+
+	<!-- 定义JSP文件的位置 -->
+	<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="order" value="2" />
+		<property name="prefix" value="/WEB-INF/views/"/>
+		<property name="suffix" value=".jsp"/>
+	</bean>
+
+	<!-- 容器默认的DefaultServletHandler处理 所有静态内容与无RequestMapping处理的URL-->	
+	<mvc:default-servlet-handler/>
+	
+	<!-- 定义无需Controller的url<->view直接映射 -->
+	<mvc:view-controller path="/" view-name="redirect:/task"/>
+	
+	<!-- 将Controller抛出的异常转到特定View, 保持SiteMesh的装饰效果 -->
+	<bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">  
+		<property name="exceptionMappings">  
+			<props>  
+				<prop key="java.lang.Throwable">error/500</prop>
+            </props>  
+		</property>  
+    </bean>
+
+</beans>
